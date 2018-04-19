@@ -90,15 +90,12 @@ Buffer* BufferManager::Bread(int blkno) {
     return pb;
 }
 
+/* Ð´Ò»¸ö´ÅÅÌ¿é */
 void BufferManager::Bwrite(Buffer *pb) {
 	pb->flags &= ~(Buffer::B_DELWRI);
 	deviceDriver->write(pb->addr, BUFFER_SIZE, pb->blkno*BUFFER_SIZE);
 	pb->flags |= (Buffer::B_DONE);
-}
-
-void BufferManager::ClrBuf(Buffer *bp) {
-	Utility::memset(bp->addr, 0, sizeof(BufferManager::BUFFER_SIZE));
-	return;
+	this->Brelse(pb);
 }
 
 /* ÑÓ³ÙÐ´´ÅÅÌ¿é */
@@ -106,4 +103,20 @@ void BufferManager::Bdwrite(Buffer* bp) {
 	bp->flags |= (Buffer::B_DELWRI | Buffer::B_DONE);
 	this->Brelse(bp);
 	return;
+}
+
+/* Çå¿Õ»º³åÇøÄÚÈÝ */
+void BufferManager::Bclear(Buffer *bp) {
+	Utility::memset(bp->addr, 0, sizeof(BufferManager::BUFFER_SIZE));
+	return;
+}
+
+/* ½«¶ÓÁÐÖÐÑÓ³ÙÐ´µÄ»º´æÈ«²¿Êä³öµ½´ÅÅÌ */
+void BufferManager::Bflush() {
+	Buffer* pb;
+	for (pb = bufferList->forw; pb != bufferList; pb = pb->forw) {
+		if ((pb->flags & Buffer::B_DELWRI)) {
+			this->Bwrite(pb);
+		}
+	}
 }

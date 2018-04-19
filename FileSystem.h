@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FILESYSTEM_H
+#define FILESYSTEM_H
 
 #include "INode.h"
 #include "DeviceDriver.h"
@@ -7,11 +8,10 @@
 /*
  * 文件系统存储资源管理块(Super Block)的定义。
  */
-class SuperBlock
-{
+class SuperBlock {
 public:
     const static int MAX_NFREE = 100;
-    const static int MAX_NINode = 100;
+    const static int MAX_NINODE = 100;
 
 public:
     int	s_isize;		        // 外存INode区占用的盘块数
@@ -21,7 +21,7 @@ public:
     int	s_free[MAX_NFREE];	    // 直接管理的空闲盘块索引表
 
     int	s_ninode;		        // 直接管理的空闲外存INode数量
-    int	s_inode[MAX_NINode];	// 直接管理的空闲外存INode索引表
+    int	s_inode[MAX_NINODE];	// 直接管理的空闲外存INode索引表
 
     int	s_flock;		        // 封锁空闲盘块索引表标志
     int	s_ilock;		        // 封锁空闲INode表标志
@@ -32,8 +32,7 @@ public:
     int	padding[47];	        // 填充使SuperBlock块大小等于1024字节，占据2个扇区
 };
 
-class DirectoryEntry
-{
+class DirectoryEntry {
 public:
     static const int DIRSIZ = 28;	/* 目录项中路径部分的最大字符串长度 */
 
@@ -88,42 +87,30 @@ public:
     FileSystem();
     ~FileSystem();
 
+	/* 格式化SuperBlock */
     void FormatSuperBlock();
 
+	/* 格式化整个文件系统 */
     void FormatDevice();
 
-    /*
-    * @comment 系统初始化时读入SuperBlock
-    */
+    /* 系统初始化时读入SuperBlock */
     void LoadSuperBlock();
 
-    /*
-    * @comment 将SuperBlock对象的内存副本更新到
-    * 存储设备的SuperBlock中去
-    */
-    void UpdateSuperBlock();
+    /* 将SuperBlock对象的内存副本更新到存储设备的SuperBlock中去 */
+    void Update();
 
-    /*
-    * @comment  在存储设备dev上分配一个空闲
-    * 外存INode，一般用于创建新的文件。
-    */
-	//!
+    /* 在存储设备dev上分配一个空闲外存INode，一般用于创建新的文件。*/
     INode* IAlloc();
 
-    /*
-    * @comment  释放存储设备dev上编号为number
-    * 的外存INode，一般用于删除文件。
-    */
-    void IFree(short dev, int number);
+    /* 释放编号为number的外存INode，一般用于删除文件。*/
+    void IFree(int number);
 
-    /*
-    * @comment 在存储设备dev上分配空闲磁盘块
-    */
+    /* 在存储设备上分配空闲磁盘块 */
     Buffer* Alloc();
 
-    /*
-    * @comment 释放存储设备dev上编号为blkno的磁盘块
-    */
+    /* 释放存储设备dev上编号为blkno的磁盘块 */
     void Free(int blkno);
 
 };
+
+#endif

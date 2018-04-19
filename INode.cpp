@@ -37,6 +37,7 @@ INode::INode() {
 INode::~INode() {
 }
 
+/* 根据Inode对象中的物理磁盘块索引表，读取相应的文件数据 */
 void INode::ReadI() {
 	User& u = g_User;
 	BufferManager& bufferManager = g_BufferManager;
@@ -53,22 +54,20 @@ void INode::ReadI() {
 	while (User::U_NOERROR == u.u_error && u.u_IOParam.m_Count) {
 		lbn = bn = u.u_IOParam.m_Offset / INode::BLOCK_SIZE;
 		offset = u.u_IOParam.m_Offset % INode::BLOCK_SIZE;
+		
 		/* 传送到用户区的字节数量，取读请求的剩余字节数与当前字符块内有效字节数较小值 */
 		nbytes = Utility::min(INode::BLOCK_SIZE - offset /* 块内有效字节数 */, u.u_IOParam.m_Count);
-
-		/* 如果不是特殊块设备文件：常规数据文件 */
-		if ((this->i_mode & INode::IFMT) != INode::IFBLK) {
-			int remain = this->i_size - u.u_IOParam.m_Offset;
-			if (remain <= 0) {
-				return;
-			}
-
-			/* 传送的字节数量还取决于剩余文件的长度 */
-			nbytes = Utility::min(nbytes, remain);
-			if ((bn = this->Bmap(lbn)) == 0) {
-				return;
-			}
+		int remain = this->i_size - u.u_IOParam.m_Offset;
+		if (remain <= 0) {
+			return;
 		}
+		
+		/* 传送的字节数量还取决于剩余文件的长度 */
+		nbytes = Utility::min(nbytes, remain);
+		if ((bn = this->Bmap(lbn)) == 0) {
+			return;
+		}
+		
 		pBuffer = bufferManager.Bread(bn);
 		this->i_lastr = lbn;
 
@@ -83,6 +82,7 @@ void INode::ReadI() {
 	}
 }
 
+/* 根据Inode对象中的物理磁盘块索引表，将数据写入文件 */
 void INode::WriteI() {
 	int lbn, bn;
 	int offset, nbytes;
@@ -101,11 +101,8 @@ void INode::WriteI() {
 		lbn = u.u_IOParam.m_Offset / INode::BLOCK_SIZE;
 		offset = u.u_IOParam.m_Offset % INode::BLOCK_SIZE;
 		nbytes = Utility::min(INode::BLOCK_SIZE - offset, u.u_IOParam.m_Count);
-
-		if ((this->i_mode & INode::IFMT) != INode::IFBLK) {
-			if ((bn = this->Bmap(lbn)) == 0) {
-				return;
-			}
+		if ((bn = this->Bmap(lbn)) == 0) {
+			return;
 		}
 
 		if (INode::BLOCK_SIZE == nbytes) {
@@ -139,6 +136,7 @@ void INode::WriteI() {
 	}
 }
 
+/* 将包含外存Inode字符块中信息拷贝到内存Inode中 */
 void INode::ICopy(Buffer* pb, int inumber) {
     DiskINode& dINode = *(DiskINode*)(pb->addr + (inumber%FileSystem::INODE_NUMBER_PER_SECTOR)*sizeof(DiskINode));
     i_mode = dINode.d_mode;
@@ -149,6 +147,7 @@ void INode::ICopy(Buffer* pb, int inumber) {
     Utility::memcpy(i_addr, dINode.d_addr, sizeof(i_addr));
 }
 
+/* 将文件的逻辑块号转换成对应的物理盘块号 */
 int INode::Bmap(int lbn) {
 	/*
 	* Unix V6++的文件索引结构：(小型、大型和巨型文件)
@@ -243,7 +242,7 @@ int INode::Bmap(int lbn) {
 		index = (lbn - INode::LARGE_FILE_BLOCK) % INode::ADDRESS_PER_INDEX_BLOCK;
 	}
 
-	if ((phyBlkno = iTable[index]) == 0 && (pSecondBuffer == fileSystem.Alloc() != NULL)) {
+	if ((phyBlkno = iTable[index]) == 0 && (pSecondBuffer = fileSystem.Alloc()) != NULL) {
 		phyBlkno = pSecondBuffer->blkno;
 		iTable[index] = phyBlkno;
 		bufferManager.Bdwrite(pSecondBuffer);
@@ -255,6 +254,7 @@ int INode::Bmap(int lbn) {
 	return phyBlkno;
 }
 
+/* 清空Inode对象中的数据 */
 void INode::Clean() {
 	/*
 	* Inode::Clean()特定用于IAlloc()中清空新分配DiskInode的原有数据，
@@ -276,14 +276,17 @@ void INode::Clean() {
 	Utility::memset(i_addr, 0, sizeof(i_addr));
 }
 
+/* 更新外存Inode的最后的访问时间、修改时间 */
 void INode::IUpdate(int time) {
 	Buffer* pBuffer;
 	DiskINode dINode;
 	FileSystem& fileSystem = g_FileSystem;
 	BufferManager& bufferManager = g_BufferManager;
 
-	/* 当IUPD和IACC标志之一被设置，才需要更新相应DiskInode
-	* 目录搜索，不会设置所途径的目录文件的IACC和IUPD标志 */
+	/* 
+	 *当IUPD和IACC标志之一被设置，才需要更新相应DiskInode
+	 * 目录搜索，不会设置所途径的目录文件的IACC和IUPD标志 
+	 */
 	if (this->i_flag&(INode::IUPD | INode::IACC)) {
 		pBuffer = bufferManager.Bread(FileSystem::INODE_ZONE_START_SECTOR + this->i_number / FileSystem::INODE_NUMBER_PER_SECTOR);
 		dINode.d_mode = this->i_mode;
@@ -293,22 +296,15 @@ void INode::IUpdate(int time) {
 		dINode.d_size = this->i_size;
 		memcpy(dINode.d_addr, i_addr, sizeof(dINode.d_addr));
 		if (this->i_flag & INode::IACC) {
-			/* 更新最后访问时间 */
 			dINode.d_atime = time;
 		}
 		if (this->i_flag & INode::IUPD) {
-			/* 更新最后访问时间 */
 			dINode.d_mtime = time;
 		}
 
-		/* 将p指向缓存区中旧外存Inode的偏移位置 */
 		unsigned char* p = pBuffer->addr + (this->i_number % FileSystem::INODE_NUMBER_PER_SECTOR) * sizeof(DiskINode);
 		DiskINode* pNode = &dINode;
-
-		/* 用dInode中的新数据覆盖缓存中的旧外存Inode */
 		Utility::memcpy(p, pNode, sizeof(DiskINode));
-
-		/* 将缓存写回至磁盘，达到更新旧外存Inode的目的 */
 		bufferManager.Bwrite(pBuffer);
 	}
 }
@@ -316,20 +312,8 @@ void INode::IUpdate(int time) {
 void INode::ITrunc() {
 	BufferManager &bufferManager = g_BufferManager;
 	FileSystem& fileSystem = g_FileSystem;
-
-	/* 采用FILO方式释放，以尽量使得SuperBlock中记录的空闲盘块号连续。
-	*
-	* Unix V6++的文件索引结构：(小型、大型和巨型文件)
-	* (1) i_addr[0] - i_addr[5]为直接索引表，文件长度范围是0 - 6个盘块；
-	*
-	* (2) i_addr[6] - i_addr[7]存放一次间接索引表所在磁盘块号，每磁盘块
-	* 上存放128个文件数据盘块号，此类文件长度范围是7 - (128 * 2 + 6)个盘块；
-	*
-	* (3) i_addr[8] - i_addr[9]存放二次间接索引表所在磁盘块号，每个二次间接
-	* 索引表记录128个一次间接索引表所在磁盘块号，此类文件长度范围是
-	* (128 * 2 + 6 ) < size <= (128 * 128 * 2 + 128 * 2 + 6)
-	*/
 	Buffer* pFirstBuffer, *pSecondBuffer;
+
 	for (int i = 9; i >= 0; --i) {
 		if (this->i_addr[i]) {
 			if (i >= 6) {

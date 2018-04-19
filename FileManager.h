@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FILEMANAGER_H
+#define FILEMANAGER_H
 
 #include "FileSystem.h"
 #include "OpenFileManager.h"
@@ -117,3 +118,5 @@ public:
     /* 改变当前工作目录 */
     void ChDir();
 };
+
+#endif

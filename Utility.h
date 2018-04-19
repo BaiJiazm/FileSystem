@@ -10,6 +10,7 @@ public:
 	static void memset(void *s, int ch, size_t n);
 	static int memcmp(const void *buf1, const void *buf2, unsigned int count);
 	static int min(int a, int b);
+	static time_t time(time_t* t);
 };
 
 #endif

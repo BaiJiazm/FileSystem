@@ -37,7 +37,7 @@ void FileManager::Creat() {
 	if (NULL == pINode) {
 		if (u.u_error)
 			return;
-		pINode=this->MakNode()
+		//pINode=this->MakNode()
 	}
 }
 

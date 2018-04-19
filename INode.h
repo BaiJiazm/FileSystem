@@ -1,4 +1,5 @@
-#pragma once
+#ifndef INODE_H
+#define INODE_H
 
 #include "Buffer.h"
 
@@ -6,7 +7,7 @@ class INode {
 public:
     // INodeFlag中标志位
     enum INodeFlag {
-        //ILOCK = 0x1,    // 索引节点上锁
+        //ILOCK = 0x1,  // 索引节点上锁
         IUPD = 0x2,		// 内存INode被修改过，需要更新相应外存INode
         IACC = 0x4,		// 内存INode被访问过，需要修改最近一次访问时间
         //IMOUNT = 0x8,	// 内存INode用于挂载子文件系统
@@ -59,20 +60,13 @@ public:
     INode();
     ~INode();
 
-    /*
-    * @comment 根据Inode对象中的物理磁盘块索引表，读取相应
-    * 的文件数据
-    */
+    /* 根据Inode对象中的物理磁盘块索引表，读取相应的文件数据 */
     void ReadI();
 
-    /*
-    * @comment 根据Inode对象中的物理磁盘块索引表，将数据写入文件
-    */
+    /* 根据Inode对象中的物理磁盘块索引表，将数据写入文件 */
     void WriteI();
 
-    /*
-    * @comment 将文件的逻辑块号转换成对应的物理盘块号
-    */
+    /* 将文件的逻辑块号转换成对应的物理盘块号 */
     int Bmap(int lbn);
 
     /*
@@ -81,36 +75,20 @@ public:
     */
     //void OpenI(int mode);
 
-    /*
-    * @comment 对特殊字符设备、块设备文件。如果对该设备的引用计数为0，
-    * 则调用该设备的关闭程序
-    */
-    //void CloseI(int mode);
-
-    /*
-    * @comment 更新外存Inode的最后的访问时间、修改时间
-    */
+    /* 更新外存Inode的最后的访问时间、修改时间 */
     void IUpdate(int time);
 
-    /*
-    * @comment 释放Inode对应文件占用的磁盘块
-    */
+    /* 释放Inode对应文件占用的磁盘块 */
     void ITrunc();
 
-    /*
-    * @comment 清空Inode对象中的数据
-    */
+    /* 清空Inode对象中的数据 */
     void Clean();
 
-    /*
-    * @comment 将包含外存Inode字符块中信息拷贝到内存Inode中
-    */
+    /* 将包含外存Inode字符块中信息拷贝到内存Inode中 */
     void ICopy(Buffer* bp, int inumber);
 };
 
-
-class DiskINode
-{
+class DiskINode {
 public:
     unsigned int d_mode;	// 状态的标志位，定义见enum INodeFlag
     int		d_nlink;		// 文件联结计数，即该文件在目录树中不同路径名的数量
@@ -128,3 +106,5 @@ public:
     DiskINode();
     ~DiskINode();
 };
+
+#endif
