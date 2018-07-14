@@ -46,18 +46,18 @@ void INode::ReadI() {
 	Buffer* pBuffer;
 
 	/* 需要读字节数为零，则返回 */
-	if (0 == u.u_IOParam.m_Count) {
+	if (0 == u.IOParam.count) {
 		return;
 	}
 	this->i_flag |= INode::IACC;
 
-	while (User::U_NOERROR == u.u_error && u.u_IOParam.m_Count) {
-		lbn = bn = u.u_IOParam.m_Offset / INode::BLOCK_SIZE;
-		offset = u.u_IOParam.m_Offset % INode::BLOCK_SIZE;
+	while (User::U_NOERROR == u.u_error && u.IOParam.count) {
+		lbn = bn = u.IOParam.offset / INode::BLOCK_SIZE;
+		offset = u.IOParam.offset % INode::BLOCK_SIZE;
 		
 		/* 传送到用户区的字节数量，取读请求的剩余字节数与当前字符块内有效字节数较小值 */
-		nbytes = Utility::min(INode::BLOCK_SIZE - offset /* 块内有效字节数 */, u.u_IOParam.m_Count);
-		int remain = this->i_size - u.u_IOParam.m_Offset;
+		nbytes = Utility::min(INode::BLOCK_SIZE - offset /* 块内有效字节数 */, u.IOParam.count);
+		int remain = this->i_size - u.IOParam.offset;
 		if (remain <= 0) {
 			return;
 		}
@@ -73,10 +73,10 @@ void INode::ReadI() {
 
 		/* 缓存中数据起始读位置 */
 		unsigned char* start = pBuffer->addr + offset;
-		Utility::memcpy(u.u_IOParam.m_Base, start, nbytes);
-		u.u_IOParam.m_Base += nbytes;
-		u.u_IOParam.m_Offset += nbytes;
-		u.u_IOParam.m_Count -= nbytes;
+		Utility::memcpy(u.IOParam.base, start, nbytes);
+		u.IOParam.base += nbytes;
+		u.IOParam.offset += nbytes;
+		u.IOParam.count -= nbytes;
 
 		bufferManager.Brelse(pBuffer);
 	}
@@ -93,14 +93,14 @@ void INode::WriteI() {
 	this->i_flag |= (INode::IACC | INode::IUPD);
 
 	/* 需要写字节数为零，则返回 */
-	if (0 == u.u_IOParam.m_Count) {
+	if (0 == u.IOParam.count) {
 		return;
 	}
 
-	while (User::U_NOERROR == u.u_error && u.u_IOParam.m_Count) {
-		lbn = u.u_IOParam.m_Offset / INode::BLOCK_SIZE;
-		offset = u.u_IOParam.m_Offset % INode::BLOCK_SIZE;
-		nbytes = Utility::min(INode::BLOCK_SIZE - offset, u.u_IOParam.m_Count);
+	while (User::U_NOERROR == u.u_error && u.IOParam.count) {
+		lbn = u.IOParam.offset / INode::BLOCK_SIZE;
+		offset = u.IOParam.offset % INode::BLOCK_SIZE;
+		nbytes = Utility::min(INode::BLOCK_SIZE - offset, u.IOParam.count);
 		if ((bn = this->Bmap(lbn)) == 0) {
 			return;
 		}
@@ -116,10 +116,10 @@ void INode::WriteI() {
 
 		/* 缓存中数据的起始写位置 写操作: 从用户目标区拷贝数据到缓冲区 */
 		unsigned char* start = pBuffer->addr + offset;
-		Utility::memcpy(start, u.u_IOParam.m_Base, nbytes);
-		u.u_IOParam.m_Base += nbytes;
-		u.u_IOParam.m_Offset += nbytes;
-		u.u_IOParam.m_Count -= nbytes;
+		Utility::memcpy(start, u.IOParam.base, nbytes);
+		u.IOParam.base += nbytes;
+		u.IOParam.offset += nbytes;
+		u.IOParam.count -= nbytes;
 
 		if (u.u_error != User::U_NOERROR) {
 			bufferManager.Brelse(pBuffer);
@@ -129,8 +129,8 @@ void INode::WriteI() {
 		bufferManager.Bdwrite(pBuffer);
 
 		/* 普通文件长度增加 */
-		if (this->i_size < u.u_IOParam.m_Offset) {
-			this->i_size = u.u_IOParam.m_Offset;
+		if (this->i_size < u.IOParam.offset) {
+			this->i_size = u.IOParam.offset;
 		}
 		this->i_flag |= INode::IUPD;
 	}
@@ -160,7 +160,6 @@ int INode::Bmap(int lbn) {
 	* 索引表记录128个一次间接索引表所在磁盘块号，此类文件长度范围是
 	* (128 * 2 + 6 ) < size <= (128 * 128 * 2 + 128 * 2 + 6)
 	*/
-
 	User& u = g_User;
 	BufferManager& bufferManager = g_BufferManager;
 	FileSystem& fileSystem = g_FileSystem;
@@ -179,8 +178,8 @@ int INode::Bmap(int lbn) {
 
 		/* 如果该逻辑块号还没有相应的物理盘块号与之对应，则分配一个物理块。*/
 		if (phyBlkno == 0 && (pFirstBuffer = fileSystem.Alloc()) != NULL) {
-			bufferManager.Bdwrite(pFirstBuffer);
 			phyBlkno = pFirstBuffer->blkno;
+			bufferManager.Bdwrite(pFirstBuffer);
 			this->i_addr[lbn] = phyBlkno;
 			this->i_flag |= INode::IUPD;
 		}

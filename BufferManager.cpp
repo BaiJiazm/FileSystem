@@ -4,7 +4,7 @@
 extern DeviceDriver g_DeviceDriver;
 
 /* 
- *	Buffer 只用到了两个标志，B_DONE和B_DELWRI，分别表示已经完成IO和延迟写的标志。
+ *	Buffer只用到了两个标志，B_DONE和B_DELWRI，分别表示已经完成IO和延迟写的标志。
  *	空闲Buffer无任何标志
 */
 BufferManager::BufferManager() {
@@ -14,7 +14,16 @@ BufferManager::BufferManager() {
 }
 
 BufferManager::~BufferManager() {
+    Bflush();
     delete bufferList;
+}
+
+void BufferManager::FormatBuffer() {
+    Buffer emptyBuffer;
+    for (int i = 0; i < NBUF; ++i) {
+        Utility::memcpy(nBuffer + i, &emptyBuffer, sizeof(Buffer));
+    }
+    InitList();
 }
 
 void BufferManager::InitList() {
@@ -35,18 +44,29 @@ void BufferManager::InitList() {
             bufferList->forw = nBuffer + i;
         }
         nBuffer[i].addr = buffer[i];
+        nBuffer[i].no = i;
     }
 }
 
+/* 采用LRU Cache 算法，每次从头部取出，使用后放到尾部
+*/
 void BufferManager::DetachNode(Buffer* pb) {
+    if (pb->back == NULL) {
+        return;
+    }
     pb->forw->back = pb->back;
     pb->back->forw = pb->forw;
+    pb->back = NULL;
+    pb->forw = NULL;
 }
 
 void BufferManager::InsertTail(Buffer* pb) {
+    if (pb->back != NULL) {
+        return;
+    }
     pb->forw = bufferList->forw;
     pb->back = bufferList;
-    pb->forw->back = pb;
+    bufferList->forw->back = pb;
     bufferList->forw = pb;
 }
 
@@ -70,7 +90,7 @@ Buffer* BufferManager::GetBlk(int blkno) {
     }
 	pb->flags &= ~(Buffer::B_DELWRI | Buffer::B_DONE);
 	pb->blkno = blkno;
-	map[pb->blkno] = pb;
+	map[blkno] = pb;
     return pb;
 }
 
@@ -82,6 +102,8 @@ void BufferManager:: Brelse(Buffer* pb) {
 /* 读一个磁盘块，blkno为目标磁盘块逻辑块号。 */
 Buffer* BufferManager::Bread(int blkno) {
     Buffer* pb = GetBlk(blkno);
+    //pb->debugMark();
+    //pb->debugContent();
 	if (pb->flags&(Buffer::B_DONE | Buffer::B_DELWRI)) {
 		return pb;
 	}
@@ -92,6 +114,8 @@ Buffer* BufferManager::Bread(int blkno) {
 
 /* 写一个磁盘块 */
 void BufferManager::Bwrite(Buffer *pb) {
+    //pb->debugMark();
+    //pb->debugContent();
 	pb->flags &= ~(Buffer::B_DELWRI);
 	deviceDriver->write(pb->addr, BUFFER_SIZE, pb->blkno*BUFFER_SIZE);
 	pb->flags |= (Buffer::B_DONE);
@@ -107,16 +131,26 @@ void BufferManager::Bdwrite(Buffer* bp) {
 
 /* 清空缓冲区内容 */
 void BufferManager::Bclear(Buffer *bp) {
-	Utility::memset(bp->addr, 0, sizeof(BufferManager::BUFFER_SIZE));
+	Utility::memset(bp->addr, 0, BufferManager::BUFFER_SIZE);
 	return;
 }
 
 /* 将队列中延迟写的缓存全部输出到磁盘 */
 void BufferManager::Bflush() {
-	Buffer* pb;
-	for (pb = bufferList->forw; pb != bufferList; pb = pb->forw) {
-		if ((pb->flags & Buffer::B_DELWRI)) {
-			this->Bwrite(pb);
-		}
-	}
+    Buffer* pb = NULL;
+    for (int i = 0; i < NBUF; ++i) {
+        pb = nBuffer + i;
+        if ((pb->flags & Buffer::B_DELWRI)) {
+            pb->flags &= ~(Buffer::B_DELWRI);
+            deviceDriver->write(pb->addr, BUFFER_SIZE, pb->blkno*BUFFER_SIZE);
+            pb->flags |= (Buffer::B_DONE);
+        }
+    }
+}
+
+void BufferManager::debug() {
+    for (Buffer* pb = bufferList->back; pb != bufferList; pb = pb->back) {
+        pb->debugMark();
+    }
+    cout << endl;
 }

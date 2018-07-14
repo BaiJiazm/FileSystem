@@ -18,7 +18,7 @@ public:
 	/* 系统打开文件表，为所有进程共享，进程打开文件描述符表
 	 * 中包含指向打开文件表中对应File结构的指针。
 	 */
-    File m_File[MAX_FILES];			
+    File m_File[MAX_FILES];	
 
 public:
 	OpenFileTable();
@@ -27,8 +27,10 @@ public:
 	/* 在系统打开文件表中分配一个空闲的File结构 */
     File* FAlloc();
 
-    /* 对打开文件控制块File结构的引用计数f_count减1，若引用计数f_count为0，则释放File结构。*/
+    /* 对打开文件控制块File结构的引用计数count减1，若引用计数count为0，则释放File结构。*/
     void CloseF(File* pFile);
+
+    void Format();
 };
 
 /*
@@ -41,7 +43,7 @@ public:
 
 private:
     INode m_INode[NINODE];		/* 内存INode数组，每个打开文件都会占用一个内存INode */
-    FileSystem* m_FileSystem;	/* 对全局对象g_FileSystem的引用 */
+    FileSystem* fileSystem;	/* 对全局对象g_FileSystem的引用 */
 
 public:
     INodeTable();
@@ -70,6 +72,8 @@ public:
     
     /* 在内存INode表中寻找一个空闲的内存INode */
     INode* GetFreeINode();
+
+    void Format();
 };
 
 #endif

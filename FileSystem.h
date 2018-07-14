@@ -37,8 +37,8 @@ public:
     static const int DIRSIZ = 28;	/* 目录项中路径部分的最大字符串长度 */
 
 public:
-    int m_ino;		/* 目录项中INode编号部分 */
-    char m_name[DIRSIZ];	/* 目录项中路径名部分 */
+    int m_ino;		    /* 目录项中INode编号部分 */
+    char name[DIRSIZ];	/* 目录项中路径名部分 */
 };
 
 class FileSystem {

@@ -18,10 +18,10 @@ public:
 	File();
 	~File();
 
-	unsigned int f_flag;		/* 对打开文件的读、写操作要求 */
-	int		f_count;			/* 当前引用该文件控制块的进程数量 */
-	INode*	f_inode;			/* 指向打开文件的内存INode指针 */
-	int		f_offset;			/* 文件读写位置指针 */
+	unsigned int flag;		/* 对打开文件的读、写操作要求 */
+	int		count;			/* 当前引用该文件控制块的进程数量 */
+	INode*	inode;			/* 指向打开文件的内存INode指针 */
+	int		offset;			/* 文件读写位置指针 */
 };
 
 /*
@@ -30,7 +30,7 @@ public:
  */
 class OpenFiles {
 public:
-    static const int MAX_FILES = 15;		/* 进程允许打开的最大文件数 */
+    static const int MAX_FILES = 100;		/* 进程允许打开的最大文件数 */
 
 private:
     File *processOpenFileTable[MAX_FILES];	/* File对象的指针数组，指向系统打开文件表中的File对象 */
@@ -55,9 +55,9 @@ public:
  */
 class IOParameter {
 public:
-    unsigned char* m_Base;	/* 当前读、写用户目标区域的首地址 */
-    int m_Offset;			/* 当前读、写文件的字节偏移量 */
-    int m_Count;			/* 当前还剩余的读、写字节数量 */
+    unsigned char* base;	/* 当前读、写用户目标区域的首地址 */
+    int offset;			    /* 当前读、写文件的字节偏移量 */
+    int count;			    /* 当前还剩余的读、写字节数量 */
 };
 
 #endif

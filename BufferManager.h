@@ -44,12 +44,17 @@ public:
 	/* 将队列中延迟写的缓存全部输出到磁盘 */
 	void Bflush();
     
-	//Buffer& GetFreeBuffer();				/* 获取空闲控制块Buf对象引用 */
+    /* 获取空闲控制块Buf对象引用 */
+	//Buffer& GetFreeBuffer();				
 	
+    /* 格式化所有Buffer */
+    void FormatBuffer();
+
 private:
     void InitList();
     void DetachNode(Buffer* pb);
     void InsertTail(Buffer* pb);
+    void debug();
 };
 
 #endif

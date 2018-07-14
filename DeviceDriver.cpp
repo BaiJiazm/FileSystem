@@ -12,10 +12,12 @@ DeviceDriver::~DeviceDriver() {
     }
 }
 
+/* 检查镜像文件是否存在 */
 bool DeviceDriver::Exists() {
     return fp != NULL;
 }
 
+/* 打开镜像文件 */
 void DeviceDriver::Construct() {
     fp = fopen(DISK_FILE_NAME, "wb+");
     if (fp == NULL) {
@@ -24,14 +26,16 @@ void DeviceDriver::Construct() {
     }
 }
 
-void DeviceDriver::write(const void* buffer, unsigned int size, unsigned int offset, unsigned int origin) {
+/* 实际写磁盘函数 */
+void DeviceDriver::write(const void* buffer, unsigned int size, int offset, unsigned int origin) {
     if (offset >= 0) {
         fseek(fp, offset, origin);
     }
     fwrite(buffer, size, 1, fp);
 }
 
-void DeviceDriver::read(void* buffer, unsigned int size, unsigned int offset, unsigned int origin) {
+/* 实际写磁盘函数 */
+void DeviceDriver::read(void* buffer, unsigned int size, int offset, unsigned int origin) {
     if (offset >= 0) {
         fseek(fp, offset, origin);
     }

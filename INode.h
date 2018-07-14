@@ -24,12 +24,12 @@ public:
     //static const unsigned int ISUID = 0x800;		/* 执行时文件时将用户的有效用户ID修改为文件所有者的User ID */
     //static const unsigned int ISGID = 0x400;		/* 执行时文件时将用户的有效组ID修改为文件所有者的Group ID */
     //static const unsigned int ISVTX = 0x200;		/* 使用后仍然位于交换区上的正文段 */
-    //static const unsigned int IREAD = 0x100;		/* 对文件的读权限 */
-    //static const unsigned int IWRITE = 0x80;		/* 对文件的写权限 */
-    //static const unsigned int IEXEC = 0x40;			/* 对文件的执行权限 */
-    //static const unsigned int IRWXU = (IREAD | IWRITE | IEXEC);		/* 文件主对文件的读、写、执行权限 */
-    //static const unsigned int IRWXG = ((IRWXU) >> 3);			/* 文件主同组用户对文件的读、写、执行权限 */
-    //static const unsigned int IRWXO = ((IRWXU) >> 6);			/* 其他用户对文件的读、写、执行权限 */
+    static const unsigned int IREAD = 0x100;		/* 对文件的读权限 */
+    static const unsigned int IWRITE = 0x80;		/* 对文件的写权限 */
+    static const unsigned int IEXEC = 0x40;			/* 对文件的执行权限 */
+    static const unsigned int IRWXU = (IREAD | IWRITE | IEXEC);		/* 文件主对文件的读、写、执行权限 */
+    static const unsigned int IRWXG = ((IRWXU) >> 3);			    /* 文件主同组用户对文件的读、写、执行权限 */
+    static const unsigned int IRWXO = ((IRWXU) >> 6);			    /* 其他用户对文件的读、写、执行权限 */
 
 	static const int BLOCK_SIZE = 512;		/* 文件逻辑块大小: 512字节 */
 	static const int ADDRESS_PER_INDEX_BLOCK = BLOCK_SIZE / sizeof(int);	/* 每个间接索引表(或索引块)包含的物理盘块号 */
@@ -69,9 +69,8 @@ public:
     /* 将文件的逻辑块号转换成对应的物理盘块号 */
     int Bmap(int lbn);
 
-    /*
-    * @comment 对特殊字符设备、块设备文件，调用该设备注册在块设备开关表
-    * 中的设备初始化程序
+    /* 对特殊字符设备、块设备文件，调用该设备注册在块设备开关表
+    *  中的设备初始化程序
     */
     //void OpenI(int mode);
 
